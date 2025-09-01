@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.30;
+
+contract Voting {
+    address public officialAddress;                
+    string[] public candidateList;                 
+    mapping(string => uint) public votesReceived;  
+    mapping(address => bool) public isVoted;       
+
+    //ประกาศตัวแปรประเภท enum ชื่อ State มีค่าเป็นไปได้คือ  Created/ Voting/ Ended
+    enum State {Created, Voting, Ended}  
+
+    //ประกาศตัวแปรประเภท state มีชนิดข้อมูลเป็น State 
+    State public state;
+
+    // constructor รับ address ของ official และรายชื่อผู้สมัคร
+    constructor(address _official, string[] memory candidateNames) {
+        officialAddress = _official;
+        candidateList = candidateNames;
+        state = State.Created;
+    }
+
+    modifier onlyOfficial() {
+        require(msg.sender == officialAddress, "ONLY Official");
+        _;
+    }
+
+    modifier inState(State _state) {
+        require(state == _state, "INCORRECT STATE");
+        _;
+    }
+
+    function startVote() public inState(State.Created) onlyOfficial {
+        //require(officialAddress == msg.sender, "ONLY Official");  - move to be modifier
+        //require(state == _state);  - move to be modifier
+        state = State.Voting;
+    }
+
+    function endVote() public inState(State.Voting) onlyOfficial {
+        state = State.Ended;
+    }
+
+    function voteForCandidate(string memory candidate) public inState(State.Voting) {         
+        require(!isVoted[msg.sender], "ALREADY VOTED");    
+        votesReceived[candidate] += 1;
+        isVoted[msg.sender] = true;
+    }
+
+    function totalVotesFor(string memory candidate) public inState(State.Ended) view returns (uint) {
+        return votesReceived[candidate];
+    }
+}
